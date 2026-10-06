@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="ca">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#2454ff" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Olympus" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="icon.svg" type="image/svg+xml" />
+  <title>Olympus Athlete · Trials</title>
+  <link rel="stylesheet" href="styles.css?v=6" />
+</head>
+<body>
+  <main class="app">
+    <section id="screen-plan" class="screen active">
+      <div class="topbar">
+        <div class="brand"><div class="brandmark">OA</div><div>OLYMPUS ATHLETE <span class="trials-tag">TRIALS</span></div></div>
+        <div id="block-week-pill" class="week-pill">BLOC 1 · SETMANA 1/8</div>
+      </div>
+
+      <section class="hero">
+        <small>HYBRID ATHLETE</small>
+        <h1>Força. Elasticitat. Motor. Control.</h1>
+        <p>Quatre dies per reconstruir capacitat atlètica amb una càrrega que puguis repetir setmana rere setmana.</p>
+      </section>
+
+      <section class="athlete-card">
+        <div class="athlete-card-head">
+          <div><small>ATHLETE SCORECARD</small><h2>Com està evolucionant el sistema</h2></div>
+          <span>últimes 4 setmanes</span>
+        </div>
+        <div id="athlete-scorecard" class="scorecard-grid"></div>
+        <div class="block-tracker">
+          <div>
+            <small>BLOC 1</small>
+            <strong id="block-week-label">SETMANA 1 / 8</strong>
+            <p id="block-week-note">Construeix base i qualitat.</p>
+          </div>
+          <div class="week-stepper">
+            <button id="block-week-prev" aria-label="Setmana anterior">−</button>
+            <button id="block-week-next" aria-label="Setmana següent">+</button>
+          </div>
+        </div>
+      </section>
+
+      <div class="section-head"><h2>Els 4 dies</h2><span>Toca per seleccionar</span></div>
+      <div id="day-grid" class="days"></div>
+
+      <section class="today-card">
+        <div id="selected-num" class="eyebrow"></div>
+        <h3 id="selected-title"></h3>
+        <p id="selected-subtitle"></p>
+        <div class="pill-row"><span class="pill">GENOLL 30'</span><span class="pill">COS SENCER 30'</span><span class="pill">MOTOR 30'</span></div>
+        <div class="two-actions">
+          <button id="view-selected-plan" class="secondary">VEURE PLA</button>
+          <button id="start-session" class="primary">INICIAR SESSIÓ</button>
+        </div>
+      </section>
+
+      <section id="readiness-card" class="readiness-card" hidden>
+        <div class="readiness-head"><div><small>PRE-ENTRENO</small><h3>Readiness</h3></div><button id="readiness-close" class="icon-btn">×</button></div>
+        <p>10 segons abans de començar. Serveix per relacionar sensacions i rendiment.</p>
+        <div class="readiness-grid">
+          <label><span>ENERGIA <b id="ready-energy-label">4/5</b></span><input id="ready-energy" type="range" min="1" max="5" value="4"></label>
+          <label><span>SON <b id="ready-sleep-label">4/5</b></span><input id="ready-sleep" type="range" min="1" max="5" value="4"></label>
+          <label><span>DOLOR GENOLL <b id="ready-pain-label">0/10</b></span><input id="ready-pain" type="range" min="0" max="10" value="0"></label>
+          <label><span>RIGIDESA / INFLOR <b id="ready-stiff-label">0/3</b></span><input id="ready-stiff" type="range" min="0" max="3" value="0"></label>
+          <label><span>CONFIANÇA <b id="ready-confidence-label">5/5</b></span><input id="ready-confidence" type="range" min="1" max="5" value="5"></label>
+        </div>
+        <div class="two-actions">
+          <button id="skip-readiness" class="secondary">SALTAR</button>
+          <button id="confirm-readiness" class="primary">GUARDAR + COMENÇAR</button>
+        </div>
+      </section>
+
+      <div id="base-plan-detail" class="plan-detail" hidden></div>
+      <div class="install-note"><b>iPhone:</b> Safari → Compartir → <b>Afegir a pantalla d'inici</b>.</div>
+    </section>
+
+    <section id="screen-workout" class="screen">
+      <div class="workout-head">
+        <div><small id="workout-num"></small><h2 id="workout-title">Cap sessió activa</h2></div>
+        <div class="elapsed"><small>TEMPS</small><strong id="elapsed-time">00:00</strong></div>
+      </div>
+      <div class="progress-track"><div id="progress-fill" class="progress-fill"></div></div>
+      <div class="session-pace">
+        <span>PACE 90'</span>
+        <b id="session-pace-label">Genoll 0–30 · Força 30–65 · Cardio 65–90</b>
+      </div>
+      <div id="workout-content"></div>
+      <div id="finish-card" class="finish-card" hidden>
+        <button id="finish-session">FINALITZAR SESSIÓ</button>
+        <button id="cancel-session" class="danger-ghost">CANCEL·LAR I DESCARTAR</button>
+      </div>
+    </section>
+
+    <section id="screen-calendar" class="screen">
+      <div class="topbar"><div class="brand"><div class="brandmark">OA</div><div>CALENDARI</div></div></div>
+      <div class="calendar-toolbar">
+        <button id="calendar-prev" class="icon-btn" aria-label="Mes anterior">‹</button>
+        <h2 id="calendar-title"></h2>
+        <button id="calendar-next" class="icon-btn" aria-label="Mes següent">›</button>
+      </div>
+      <div class="calendar-weekdays"><span>DL</span><span>DT</span><span>DC</span><span>DJ</span><span>DV</span><span>DS</span><span>DG</span></div>
+      <div id="calendar-grid" class="calendar-grid"></div>
+
+      <section class="calendar-detail">
+        <div class="section-head compact"><h2 id="calendar-day-title">Entrenos</h2><span id="calendar-day-count"></span></div>
+        <div id="calendar-sessions"></div>
+      </section>
+
+      <section id="session-editor" class="editor-card" hidden>
+        <div class="editor-head"><div><small>EDITAR ENTRENO</small><h3 id="editor-session-title"></h3></div><button id="editor-close" class="icon-btn">×</button></div>
+        <label>DATA<input id="edit-date" type="date"></label>
+        <label>DURACIÓ (MIN)<input id="edit-duration" type="number" min="0" max="600" step="1"></label>
+        <label>RPE MIG<input id="edit-rpe" type="number" min="0" max="10" step="0.5"></label>
+        <label>SÈRIES COMPLETES<input id="edit-sets" type="number" min="0" max="200" step="1"></label>
+
+        <div class="session-physical-editor-head">
+          <div><small>SESSIÓ FÍSICA</small><h4>Exercicis i sèries</h4></div>
+          <span>kg · reps · RPE · km · min · cm...</span>
+        </div>
+        <div id="edit-session-details" class="edit-session-details"></div>
+
+        <section class="add-session-exercise">
+          <small>AFEGIR EXERCICI QUE NO SURT AL PLA</small>
+          <div class="add-session-exercise-grid">
+            <input id="edit-new-exercise-name" type="text" maxlength="80" placeholder="Nom de l'exercici">
+            <select id="edit-new-exercise-block">
+              <option value="GENOLL + CAMA">GENOLL + CAMA</option>
+              <option value="COS SENCER">COS SENCER</option>
+              <option value="MOTOR">MOTOR</option>
+            </select>
+            <input id="edit-new-exercise-sets" type="number" min="1" max="20" value="3" step="1" aria-label="Nombre de sèries">
+            <button id="edit-add-exercise" type="button">+ EXERCICI</button>
+          </div>
+        </section>
+
+        <div class="editor-actions"><button id="delete-session" class="danger">ESBORRAR</button><button id="save-session-edit" class="primary inline">GUARDAR TOT</button></div>
+      </section>
+    </section>
+
+    <section id="screen-plans" class="screen">
+      <div class="topbar">
+        <div class="brand"><div class="brandmark">OA</div><div>ELS MEUS PLANS</div></div>
+        <button id="new-plan" class="add-btn">+ PLA</button>
+      </div>
+      <p class="screen-intro">Guarda plans físics, rutines, notes o blocs d'entrenament i consulta'ls sense iniciar cap sessió.</p>
+      <div id="custom-plan-list" class="custom-plan-list"></div>
+
+      <section id="plan-editor" class="editor-card" hidden>
+        <div class="editor-head"><div><small id="plan-editor-kicker">NOU PLA</small><h3 id="plan-editor-title">Crear pla</h3></div><button id="plan-editor-close" class="icon-btn">×</button></div>
+        <label>NOM DEL PLA<input id="plan-name" type="text" maxlength="80" placeholder="Ex: Explosivitat + dunk"></label>
+        <label>OBJECTIU / FOCUS<input id="plan-focus" type="text" maxlength="120" placeholder="Ex: Potència, salts i genoll"></label>
+        <label>CONTINGUT<textarea id="plan-content" rows="10" maxlength="5000" placeholder="Un exercici o bloc per línia.&#10;&#10;Ex:&#10;Pogos 3x15&#10;CMJ 4x3&#10;Trap bar 3x5 @ RPE 7"></textarea></label>
+        <label>NOTES<textarea id="plan-notes" rows="4" maxlength="2000" placeholder="Progressió, sensacions, coses a vigilar..."></textarea></label>
+        <div class="editor-actions"><button id="delete-plan" class="danger" hidden>ESBORRAR</button><button id="save-plan" class="primary inline">GUARDAR PLA</button></div>
+      </section>
+    </section>
+
+    <section id="screen-progress" class="screen">
+      <p id="import-status" role="status" aria-live="polite"></p><div class="topbar"><div class="brand"><div class="brandmark">OA</div><div>PROGRÉS</div></div><button id="export-data" class="add-btn">BACKUP</button><button id="import-data" class="add-btn">IMPORTAR</button><input id="backup-file" type="file" accept="application/json,.json" hidden></div>
+      <section class="knee-card">
+        <h2>Resposta del genoll</h2>
+        <p>Registra ràpidament com estàs ara. No cal omplir-ho cada vegada.</p>
+        <label class="slider"><span class="slider-line"><span>DOLOR</span><b id="pain-label">0/10</b></span><input id="pain" type="range" min="0" max="10" value="0"></label>
+        <label class="slider"><span class="slider-line"><span>RIGIDESA / INFLOR</span><b id="stiff-label">0/3</b></span><input id="stiff" type="range" min="0" max="3" value="0"></label>
+        <label class="slider"><span class="slider-line"><span>CONFIANÇA</span><b id="confidence-label">5/5</b></span><input id="confidence" type="range" min="1" max="5" value="5"></label>
+        <textarea id="knee-note" placeholder="Nota opcional..."></textarea>
+        <button id="save-knee" class="save-check">GUARDAR CHECK-IN</button>
+      </section>
+      <div class="metrics">
+        <div class="metric"><small>SESSIONS</small><strong id="metric-sessions">0</strong></div>
+        <div class="metric"><small>MINUTS</small><strong id="metric-minutes">0</strong></div>
+        <div class="metric"><small>RPE MIG</small><strong id="metric-rpe">0.0</strong></div>
+        <div class="metric"><small>DOLOR RECENT</small><strong id="metric-pain">0/10</strong></div>
+      </div>
+
+      <section class="weekly-card">
+        <div class="section-head compact"><h2>Setmana vs setmana</h2><span>últims 7 dies</span></div>
+        <div id="weekly-summary" class="weekly-summary"></div>
+      </section>
+
+      <section class="pr-card">
+        <div class="section-head compact"><h2>PRs</h2><span>rècords automàtics</span></div>
+        <div id="pr-feed"></div>
+      </section>
+
+      <section class="goals-card">
+        <div class="goals-head"><div><small>OBJECTIUS</small><h2>Targets</h2></div><button id="new-goal" class="add-btn">+ OBJECTIU</button></div>
+        <div id="goal-list" class="goal-list"></div>
+        <div id="goal-editor" class="mini-editor" hidden>
+          <label>EXERCICI<select id="goal-exercise"></select></label>
+          <label>MÈTRICA<select id="goal-metric"></select></label>
+          <label>OBJECTIU<input id="goal-target" type="number" inputmode="decimal" min="0" step="0.1"></label>
+          <label>DIRECCIÓ<select id="goal-direction"><option value="high">MÉS ALT ÉS MILLOR</option><option value="low">MÉS BAIX ÉS MILLOR</option></select></label>
+          <div class="two-actions"><button id="goal-cancel" class="secondary">CANCEL·LAR</button><button id="goal-save" class="primary">GUARDAR</button></div>
+        </div>
+      </section>
+
+      <section class="tests-card">
+        <div class="section-head compact"><h2>Tests atlètics</h2><span>baseline + retests</span></div>
+        <div class="test-entry">
+          <select id="test-type"></select>
+          <input id="test-value" type="number" inputmode="decimal" min="0" step="0.01" placeholder="Resultat">
+          <button id="save-test">GUARDAR TEST</button>
+        </div>
+        <div id="test-summary" class="test-summary"></div>
+      </section>
+
+      <section class="weekly-review-card">
+        <div class="goals-head"><div><small>WEEKLY REVIEW</small><h2>Feedback setmanal</h2></div><span id="weekly-review-week"></span></div>
+        <p>Guarda com ha anat la setmana i genera un resum per enganxar-me al xat.</p>
+        <div class="weekly-review-grid">
+          <label>DOLOR GENOLL (0–10)<input id="weekly-knee-pain" type="number" min="0" max="10" step="1"></label>
+          <label>RIGIDESA / INFLOR (0–3)<input id="weekly-knee-stiff" type="number" min="0" max="3" step="1"></label>
+          <label>CONFIANÇA (1–5)<input id="weekly-confidence" type="number" min="1" max="5" step="1"></label>
+          <label>FATIGA GENERAL (1–5)<input id="weekly-fatigue" type="number" min="1" max="5" step="1"></label>
+        </div>
+        <label class="weekly-notes">SENSACIONS / GENOLL / EXERCICIS
+          <textarea id="weekly-notes" rows="5" placeholder="Ex: genoll estable, una mica carregat després de salts, trap bar còmode..."></textarea>
+        </label>
+        <div class="two-actions">
+          <button id="save-weekly-review" class="secondary">GUARDAR SETMANA</button>
+          <button id="copy-weekly-summary" class="primary">COPIAR RESUM PER CHATGPT</button>
+        </div>
+        <div id="weekly-review-history" class="weekly-review-history"></div>
+      </section>
+
+      <section class="performance-card">
+        <div class="section-head compact">
+          <div><h2>Rendiment</h2><span>Per exercici</span></div>
+        </div>
+        <div class="stat-select-grid">
+          <label class="stat-select-label">EXERCICI
+            <select id="stat-exercise"></select>
+          </label>
+          <label class="stat-select-label">MÈTRICA
+            <select id="stat-metric"></select>
+          </label>
+        </div>
+        <div id="stat-summary" class="stat-summary"></div>
+        <div id="stat-chart" class="stat-chart"></div>
+        <div id="stat-empty" class="empty" hidden>Encara no hi ha dades detallades d'aquest exercici. Les noves sessions sí que es guardaran.</div>
+      </section>
+
+      <div id="history" class="history"></div>
+    </section>
+  </main>
+
+  <aside id="tempo-dock" class="tempo-dock" aria-live="polite">
+    <div><small>TEMPO</small><strong id="tempo-phase">BAIXA</strong><span id="tempo-count">3</span></div>
+    <div class="tempo-actions">
+      <button id="tempo-start">START</button>
+      <button id="tempo-stop">×</button>
+    </div>
+  </aside>
+
+  <aside id="rest-dock" class="rest-dock" aria-live="polite">
+    <div><small>DESCANS</small><strong id="rest-time">01:00</strong></div>
+    <div class="rest-actions">
+      <button data-rest="30">30</button><button data-rest="60">60</button><button data-rest="90">90</button>
+      <button id="rest-pause" class="primary-rest">PAUSA</button><button id="rest-close">×</button>
+    </div>
+  </aside>
+
+  <nav class="nav" aria-label="Navegació principal">
+    <button data-screen="plan" class="active" aria-label="Pla">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5h16M4 12h16M4 18.5h10"/></svg><span>PLA</span>
+    </button>
+    <button data-screen="workout" aria-label="Entreno">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10v4M6 8v8M18 8v8M21 10v4M6 12h12"/></svg><span>ENTRENO</span>
+    </button>
+    <button data-screen="calendar" aria-label="Calendari">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4v3M19 4v3M4 8h16M5 5.5h14a1 1 0 0 1 1 1V20H4V6.5a1 1 0 0 1 1-1Z"/><path d="M8 12h2M14 12h2M8 16h2M14 16h2"/></svg><span>CAL</span>
+    </button>
+    <button data-screen="plans" aria-label="Plans">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h11l3 3v13H5Z"/><path d="M16 4v4h4M8 12h8M8 16h6"/></svg><span>PLANS</span>
+    </button>
+    <button data-screen="progress" aria-label="Progrés">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V10M10 19V5M16 19v-7M22 19H2"/></svg><span>PROGR.</span>
+    </button>
+  </nav>
+
+  <script>
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.getRegistrations().then(function (regs) {
+        regs.forEach(function (reg) { reg.unregister(); });
+      }).catch(function () {});
+    }
+    if ("caches" in window) {
+      caches.keys().then(function (keys) {
+        keys.filter(function (key) { return key.indexOf("oa-") === 0; }).forEach(function (key) { caches.delete(key); });
+      }).catch(function () {});
+    }
+  </script>
+  <script src="legacy-data.js?v=6"></script>
+  <script src="data.js?v=6"></script>
+  <script src="v6.js?v=6"></script>
+  <script src="app.js?v=6"></script>
+</body>
+</html>

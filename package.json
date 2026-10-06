@@ -1,0 +1,10 @@
+{
+  "name": "olympus-trials",
+  "version": "6.0.0",
+  "private": true,
+  "scripts": {
+    "test": "node --test tests/trials-v6.test.cjs",
+    "check": "node --check app.js && node --check data.js && node --check legacy-data.js && node --check v6.js"
+  },
+  "devDependencies": { "jsdom": "26.1.0" }
+}
