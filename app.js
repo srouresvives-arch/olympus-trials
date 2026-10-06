@@ -391,7 +391,86 @@
 
   function tempoFor(ex) {
     var n=ex.name.toLowerCase();
-    if (n.indexOf("bike")>=0 || n.indexOf("rower")>=0 || n.indexOf("runatiga '+r.fatigue+'/5</span></div>';
+    if (n.indexOf("bike")>=0 || n.indexOf("rower")>=0 || n.indexOf("run / walk")>=0 || n.indexOf("carry")>=0 ||
+        n.indexOf("sled")>=0 || n.indexOf("jump")>=0 || n.indexOf("pogos")>=0 || n.indexOf("bound")>=0 ||
+        n.indexOf("throw")>=0 || n.indexOf("slam")>=0 || n.indexOf("acceleration")>=0 || n.indexOf("shuffle")>=0) return null;
+    if (n.indexOf("plank")>=0) return null;
+    return { down: n.indexOf("step-down")>=0 || n.indexOf("leg extension")>=0 || n.indexOf("nordic")>=0 || n.indexOf("rdl")>=0 ? 3 : 2, up:1 };
+  }
+
+  var tempoState={running:false,phase:"down",remaining:3,down:3,up:1,timer:null,audio:null};
+
+  function tempoBeep(strong) {
+    try {
+      var AC=window.AudioContext||window.webkitAudioContext;
+      if(!AC) return;
+      if(!tempoState.audio) tempoState.audio=new AC();
+      var ctx=tempoState.audio;
+      if(ctx.state==="suspended") ctx.resume();
+      var osc=ctx.createOscillator(), gain=ctx.createGain();
+      osc.frequency.value=strong?760:520;
+      gain.gain.setValueAtTime(.035,ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+.06);
+      osc.connect(gain); gain.connect(ctx.destination); osc.start(); osc.stop(ctx.currentTime+.065);
+    } catch(e){}
+  }
+
+  function paintTempo() {
+    E.tempoPhase.textContent=tempoState.phase==="down"?"BAIXA":"PUJA";
+    E.tempoCount.textContent=String(tempoState.remaining);
+    E.tempoStart.textContent=tempoState.running?"PAUSA":"START";
+    E.tempoDock.classList.add("visible");
+  }
+
+  function tempoTick() {
+    if(!tempoState.running) return;
+    tempoState.remaining-=1;
+    if(tempoState.remaining<=0){
+      tempoState.phase=tempoState.phase==="down"?"up":"down";
+      tempoState.remaining=tempoState.phase==="down"?tempoState.down:tempoState.up;
+      tempoBeep(true);
+      try{if(navigator.vibrate)navigator.vibrate(30);}catch(e){}
+    } else tempoBeep(false);
+    paintTempo();
+  }
+
+  function openTempo(down,up) {
+    clearInterval(tempoState.timer);
+    tempoState.down=down; tempoState.up=up; tempoState.phase="down"; tempoState.remaining=down; tempoState.running=true;
+    paintTempo(); tempoBeep(true);
+    tempoState.timer=setInterval(tempoTick,1000);
+  }
+  function toggleTempo() {
+    tempoState.running=!tempoState.running;
+    if(tempoState.running && !tempoState.timer) tempoState.timer=setInterval(tempoTick,1000);
+    paintTempo();
+  }
+  function closeTempo() {
+    tempoState.running=false; clearInterval(tempoState.timer); tempoState.timer=null; E.tempoDock.classList.remove("visible");
+  }
+
+  function mondayStart(ts) {
+    var d=new Date(ts||Date.now()); d.setHours(0,0,0,0);
+    var day=(d.getDay()+6)%7; d.setDate(d.getDate()-day); return d.getTime();
+  }
+  function weeklyWindow() {
+    var start=mondayStart(Date.now()); return {start:start,end:start+7*86400000};
+  }
+  function weekLabel(start) {
+    var a=new Date(start), b=new Date(start+6*86400000);
+    return a.toLocaleDateString("ca-ES",{day:"2-digit",month:"short"})+" – "+b.toLocaleDateString("ca-ES",{day:"2-digit",month:"short"});
+  }
+
+  function renderWeeklyReview() {
+    var w=weeklyWindow(), reviews=read(KEY.weeklyReviews,[]);
+    E.weeklyReviewWeek.textContent=weekLabel(w.start);
+    var current=reviews.find(function(r){return r.weekStart===w.start;});
+    if(current){
+      E.weeklyKneePain.value=current.kneePain; E.weeklyKneeStiff.value=current.kneeStiff;
+      E.weeklyConfidence.value=current.confidence; E.weeklyFatigue.value=current.fatigue; E.weeklyNotes.value=current.notes||"";
+    }
+    E.weeklyReviewHistory.innerHTML=reviews.length?reviews.slice(0,6).map(function(r){
+      return '<div class="weekly-review-row"><b>'+esc(weekLabel(r.weekStart))+'</b><span>dolor '+r.kneePain+'/10 · confiança '+r.confidence+'/5 · fatiga '+r.fatigue+'/5</span></div>';
     }).join(""):'';
   }
 
