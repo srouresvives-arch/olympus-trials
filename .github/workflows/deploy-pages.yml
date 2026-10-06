@@ -1,31 +1,48 @@
-name: Publish Olympus Trials
+name: Publish Olympus Official and Trials
 on:
   push:
-    branches: [main]
+    branches: [main, trials]
   workflow_dispatch:
 permissions:
   contents: read
   pages: write
   id-token: write
 concurrency:
-  group: olympus-trials-pages
+  group: olympus-pages
   cancel-in-progress: true
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout official release
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: release-src
+      - name: Checkout Trials
+        uses: actions/checkout@v4
+        with:
+          ref: trials
+          path: trials-src
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - run: npm install --ignore-scripts
-      - run: npm run check
-      - run: npm test
-      - uses: actions/configure-pages@v5
-      - name: Package the standalone app
+      - name: Verify Trials
+        working-directory: trials-src
         run: |
-          mkdir site
-          cp index.html app.js data.js legacy-data.js v6.js styles.css icon.svg manifest.webmanifest site/
+          npm install --ignore-scripts
+          npm run check
+          npm test
+      - name: Verify official release syntax
+        run: |
+          node --check release-src/official/app.js
+          node --check release-src/official/data.js
+      - uses: actions/configure-pages@v5
+      - name: Package isolated environments
+        run: |
+          mkdir -p site/official
+          cp trials-src/index.html trials-src/app.js trials-src/data.js trials-src/legacy-data.js trials-src/v6.js trials-src/styles.css trials-src/icon.svg trials-src/manifest.webmanifest site/
+          cp -a release-src/official/. site/official/
           touch site/.nojekyll
       - uses: actions/upload-pages-artifact@v3
         with:
