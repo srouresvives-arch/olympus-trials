@@ -1499,7 +1499,7 @@
 
   function show(name) {
     if(name!=="workout") stopReaction();
-    ["plan", "workout", "calendar", "plans", "progress"].forEach(function (screen) {
+    ["plan", "workout", "calendar", "plans", "progress", "library"].forEach(function (screen) {
       $("screen-" + screen).classList.toggle("active", screen === name);
     });
     E.newGoal.addEventListener("click",function(){
@@ -1647,4 +1647,5 @@
     scheduleRest();
   }
 })();
+
 
