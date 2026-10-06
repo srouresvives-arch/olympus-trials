@@ -542,6 +542,7 @@
     var payload = {
       exportedAt: new Date().toISOString(),
       version: "olympus-trials-v6",
+      app: "Olympus Athlete Trials", schemaVersion: 1,
       active: read(KEY.active,null),
       selected: read(KEY.selected,"day1"),
       history: read(KEY.history, []),
@@ -561,7 +562,8 @@
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
     setTimeout(function(){URL.revokeObjectURL(url);},500);
     E.exportData.textContent="EXPORTAT ✓";
-    setTimeout(function(){E.exportData.textContent="BACKUP";},1500);
+    $('import-status').textContent='JSON preparat amb '+payload.history.length+' sessions i totes les dades. Desa’l a Fitxers o Drive i importa’l a l’altre dispositiu.';
+    setTimeout(function(){E.exportData.textContent="DESCARREGAR TOT EN JSON";},1500);
   }
 
 
@@ -1499,7 +1501,7 @@
 
   function show(name) {
     if(name!=="workout") stopReaction();
-    ["plan", "workout", "calendar", "plans", "progress", "library"].forEach(function (screen) {
+    ["plan", "workout", "calendar", "plans", "progress", "library", "data"].forEach(function (screen) {
       $("screen-" + screen).classList.toggle("active", screen === name);
     });
     E.newGoal.addEventListener("click",function(){
@@ -1614,7 +1616,8 @@
       const originals={};Object.keys(staged).forEach(k=>originals[k]=localStorage.getItem(k));
       try{Object.entries(staged).forEach(([key,value])=>localStorage.setItem(key,JSON.stringify(value)));}
       catch(e){Object.entries(originals).forEach(([key,value])=>value==null?localStorage.removeItem(key):localStorage.setItem(key,value));throw Error('No hi ha prou espai; cap dada s’ha reemplaçat.');}
-      status.textContent='Còpia importada. Les dades existents es conserven. Recarrega per reprendre una sessió activa importada.';
+      if(staged[KEY.active]){active=read(KEY.active,null);if(!active.planSnapshot)active.planSnapshot=JSON.parse(JSON.stringify(LEGACY_DAYS.find(d=>d.id===active.dayId)||getDay(active.dayId)));write(KEY.active,active);startElapsed();scheduleRest();renderWorkout();}
+      status.textContent='Còpia importada. '+read(KEY.history,[]).length+' sessions guardades. Les dades existents es conserven; les coincidències mantenen la versió d’aquest dispositiu.';
       renderCalendar();renderProgress();renderCustomPlans();renderHomeIntelligence();
     }catch(e){status.textContent='No s’ha importat: '+e.message;}
     this.value='';
@@ -1632,6 +1635,8 @@
   });
   window.addEventListener("focus", function () { renderRest(); });
 
+  document.querySelectorAll('[data-open-data]').forEach(btn=>btn.onclick=()=>show('data'));
+  $('data-back').onclick=()=>show('progress');
   ['library-search','library-category','library-equipment'].forEach(id=>$(id).addEventListener('input',renderLibrary));
   $('library-back').onclick=()=>{replacementIndex=null;show('workout');};
   document.querySelector('[data-screen="library"]').addEventListener('click',()=>openLibrary(null));

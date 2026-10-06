@@ -15,6 +15,7 @@
 <body>
   <main class="app">
     <section id="screen-plan" class="screen active">
+      <button class="secondary" data-open-data>DADES · EXPORTAR / IMPORTAR</button>
       <div class="topbar">
         <div class="brand"><div class="brandmark">OA</div><div>OLYMPUS ATHLETE <span class="trials-tag">TRIALS</span></div></div>
         <div id="block-week-pill" class="week-pill">BLOC 1 · SETMANA 1/8</div>
@@ -98,6 +99,7 @@
     </section>
 
     <section id="screen-calendar" class="screen">
+      <button class="secondary" data-open-data>GUARDAR CÒPIA / PORTAR DADES D’UN ALTRE DISPOSITIU</button>
       <div class="topbar"><div class="brand"><div class="brandmark">OA</div><div>CALENDARI</div></div></div>
       <div class="calendar-toolbar">
         <button id="calendar-prev" class="icon-btn" aria-label="Mes anterior">‹</button>
@@ -162,7 +164,7 @@
     </section>
 
     <section id="screen-progress" class="screen">
-      <p id="import-status" role="status" aria-live="polite"></p><div class="topbar"><div class="brand"><div class="brandmark">OA</div><div>PROGRÉS</div></div><button id="export-data" class="add-btn">BACKUP</button><button id="import-data" class="add-btn">IMPORTAR</button><input id="backup-file" type="file" accept="application/json,.json" hidden></div>
+      <div class="topbar"><div class="brand"><div class="brandmark">OA</div><div>PROGRÉS</div></div><button class="add-btn" data-open-data>DADES / CÒPIES</button></div>
       <section class="knee-card">
         <h2>Resposta del genoll</h2>
         <p>Registra ràpidament com estàs ara. No cal omplir-ho cada vegada.</p>
@@ -249,6 +251,24 @@
 
       <div id="history" class="history"></div>
     </section>
+    <section id="screen-data" class="screen">
+      <h2>Les teves dades</h2>
+      <p>Les sessions es guarden automàticament en aquest navegador. Per tenir-les també en un altre mòbil o ordinador, traspassa el JSON. No hi ha sincronització automàtica al núvol.</p>
+      <section class="today-card">
+        <h3>Còpia completa</h3>
+        <p>Inclou historial, sèries i mètriques, substitucions, sessió activa, check-ins del genoll, readiness, plans, objectius, tests i revisions setmanals.</p>
+        <button id="export-data" class="primary">DESCARREGAR TOT EN JSON</button>
+      </section>
+      <section class="today-card">
+        <h3>Portar dades d’un altre dispositiu</h3>
+        <ol><li>Descarrega el JSON al dispositiu on has entrenat.</li><li>Desa’l a Fitxers, iCloud Drive o Drive, o passa’l a l’altre dispositiu.</li><li>Obre Trials a l’altre dispositiu i importa el fitxer.</li></ol>
+        <p>S’afegeixen els registres nous sense duplicar-los. Si un registre ja existeix, es conserva la versió d’aquest dispositiu. Una sessió activa existent no se substitueix.</p>
+        <button id="import-data" class="secondary">IMPORTAR JSON</button>
+        <input id="backup-file" type="file" accept="application/json,.json" hidden>
+      </section>
+      <p id="import-status" role="status" aria-live="polite"></p>
+      <button id="data-back" class="secondary">TORNAR A PROGRÉS</button>
+    </section>
     <section id="screen-library" class="screen">
       <h2>Llibreria d’exercicis</h2>
       <p id="library-context"></p>
@@ -301,7 +321,7 @@
   <script src="legacy-data.js?v=6"></script>
   <script src="data.js?v=6"></script>
   <script src="v6.js?v=6"></script>
-  <script src="app.js?v=9"></script>
+  <script src="app.js?v=10"></script>
 </body>
 </html>
 

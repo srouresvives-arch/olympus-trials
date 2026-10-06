@@ -1,6 +1,11 @@
 const {test}=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm'),path=require('node:path');
 const root=path.resolve(__dirname,'..');
 const {JSDOM}=require(process.env.CODEX_NODE_MODULES?process.env.CODEX_NODE_MODULES+'/jsdom':'jsdom');
+test('data screen exports complete JSON including session and detailed results',()=>{
+  const session={id:'saved',dayId:'day1',finishedAt:Date.now(),details:[{name:'Custom',sets:[{weight:'25',custom:'keep'}]}]},dom=boot({'oat5.history':[session],'oat5.goals':[{id:'goal',target:25}],'oat5.customPlans':[{id:'plan',name:'Mine'}]}),w=dom.window,d=w.document;
+  d.querySelector('[data-open-data]').click();assert.ok(d.getElementById('screen-data').classList.contains('active'));
+  let payload;w.Blob=class{constructor(parts){payload=JSON.parse(parts[0]);}};w.URL.createObjectURL=()=> 'blob:backup';w.URL.revokeObjectURL=()=>{};w.HTMLAnchorElement.prototype.click=function(){assert.match(this.download,/\.json$/);};d.getElementById('export-data').click();assert.equal(payload.schemaVersion,1);assert.equal(payload.history[0].details[0].sets[0].custom,'keep');assert.equal(payload.goals[0].id,'goal');assert.equal(payload.plans[0].id,'plan');assert.ok(Array.isArray(payload.knee));assert.ok(Array.isArray(payload.weeklyReviews));assert.match(d.getElementById('import-status').textContent,/1 sessions/);dom.window.close();
+});
 test('library filters, replacements survive reload and recorded original sets survive finish/edit',()=>{
   let dom=boot(),w=dom.window,d=w.document;
   d.querySelector('[data-screen="library"]').click();assert.ok(d.querySelectorAll('.library-card').length>35);assert.ok(d.getElementById('screen-library').classList.contains('active'));
