@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="icon" href="icon.svg" type="image/svg+xml" />
   <title>Olympus Athlete · Trials</title>
-  <link rel="stylesheet" href="styles.css?v=6" />
+  <link rel="stylesheet" href="styles.css?v=7" />
 </head>
 <body>
   <main class="app">
@@ -249,6 +249,18 @@
 
       <div id="history" class="history"></div>
     </section>
+    <section id="screen-library" class="screen">
+      <h2>Llibreria d’exercicis</h2>
+      <p id="library-context"></p>
+      <button id="library-back" hidden>TORNAR A LA SESSIÓ</button>
+      <div class="library-filters">
+        <label>Cerca<input id="library-search" type="search" placeholder="Exercici, patró o material"></label>
+        <label>Categoria<select id="library-category"><option value="">Totes les categories</option></select></label>
+        <label>Material<select id="library-equipment"><option value="">Tot el material</option></select></label>
+      </div>
+      <p id="library-count" aria-live="polite"></p>
+      <div id="library-results"></div>
+    </section>
   </main>
 
   <aside id="tempo-dock" class="tempo-dock" aria-live="polite">
@@ -280,6 +292,7 @@
     <button data-screen="plans" aria-label="Plans">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h11l3 3v13H5Z"/><path d="M16 4v4h4M8 12h8M8 16h6"/></svg><span>PLANS</span>
     </button>
+    <button data-screen="library" aria-label="Llibreria"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h7v16H4ZM13 4h7v16h-7Z"/></svg><span>LLIBR.</span></button>
     <button data-screen="progress" aria-label="Progrés">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V10M10 19V5M16 19v-7M22 19H2"/></svg><span>PROGR.</span>
     </button>
@@ -288,6 +301,7 @@
   <script src="legacy-data.js?v=6"></script>
   <script src="data.js?v=6"></script>
   <script src="v6.js?v=6"></script>
-  <script src="app.js?v=6"></script>
+  <script src="app.js?v=7"></script>
 </body>
 </html>
+

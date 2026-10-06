@@ -148,6 +148,8 @@
   }
 
   function findExerciseByName(name) {
+    var libraryMatch = exerciseLibrary().find(function(ex) { return ex.name === name; });
+    if (libraryMatch) return libraryMatch;
     for (var d = 0; d < DAYS.length; d++) {
       for (var i = 0; i < DAYS[d].exercises.length; i++) {
         if (DAYS[d].exercises[i].name === name) return DAYS[d].exercises[i];
@@ -685,8 +687,81 @@
   }
 
 
+  function exerciseCategory(ex) {
+    var n=ex.name.toLowerCase();
+    if(ex.intervals || ex.block==='MOTOR')return 'Cardio';
+    if(ex.reaction || /jump|hop|bound|pogo|landing|acceleration|shuffle|snap-down|brake/.test(n))return 'Plyo i agilitat';
+    if(/carry|plank|pallof/.test(n) && !/deadlift/.test(n))return 'Core i carries';
+    if(ex.block==='GENOLL + CAMA' || (!/→/.test(n) && /squat|lunge|deadlift|step.up|leg extension|hamstring|soleus|calf/.test(n)))return 'Cames';
+    if(/→/.test(n) && !/squat|lunge|clean|snatch|deadlift|thruster|ground.to.overhead/.test(n))return 'Tren superior · complexes';
+    if(/→|man maker|devil press|thruster|ground.to.overhead/.test(n))return 'Full body';
+    if(/row|pull|curl|face pull/.test(n))return 'Tren superior · tracció';
+    if(/press|dip|push/.test(n))return 'Tren superior · empenta';
+    return 'Full body';
+  }
+  function exercisePattern(ex) {
+    var n=ex.name.toLowerCase(),cat=exerciseCategory(ex);
+    if(cat==='Cardio')return 'Cardio';
+    if(cat==='Plyo i agilitat')return /lateral|skater|shuffle/.test(n)?'Lateral':/brake|acceleration/.test(n)?'Frenada':ex.reaction?'Reacció':'Salt vertical / horitzontal';
+    if(cat==='Cames')return /rdl|hamstring|nordic|deadlift/.test(n)?'Cadena posterior':/soleus|calf/.test(n)?'Turmell':/lateral/.test(n)?'Lateral':'Squat / lunge';
+    if(cat==='Full body')return /clean|snatch/.test(n)?'Clean / snatch + press':'Complex força-resistència';
+    return cat;
+  }
+  function exerciseLibrary() {
+    var entries=new Map();
+    DAYS.concat(typeof LEGACY_DAYS==='undefined'?[]:LEGACY_DAYS).forEach(function(day){day.exercises.forEach(function(ex){
+      var key=ex.name.toLowerCase().replace(/[^a-z0-9]/g,'');
+      if(!entries.has(key))entries.set(key,{...ex,category:exerciseCategory(ex),pattern:exercisePattern(ex)});
+    });});
+    return Array.from(entries.values()).sort(function(a,b){return a.name.localeCompare(b.name);});
+  }
+  var replacementIndex=null;
+  function openLibrary(index) {
+    replacementIndex=index==null?null:index;
+    $('library-search').value='';$('library-category').value='';$('library-equipment').value='';
+    show('library');renderLibrary();
+  }
+  function replacementExercise(original,candidate) {
+    var next=JSON.parse(JSON.stringify(candidate));
+    next.optional=false;next.block=original.block;next.group=original.group;next.format=original.format;next.code=original.code;
+    next.roundRest=original.roundRest;next.rest=original.rest;
+    if(original.intervals){next.intervals=JSON.parse(JSON.stringify(original.intervals));next.sets=original.sets;next.reps=original.reps;}
+    else if(!candidate.reaction && exerciseCategory(candidate)!=='Plyo i agilitat')next.sets=original.sets;
+    return next;
+  }
+  function replaceExercise(index,candidate) {
+    if(!active || reactionRunning)return;
+    var day=getDay(active.dayId),original=day.exercises[index];
+    if(!original || Boolean(original.intervals)!==Boolean(candidate.intervals))return;
+    var oldSets=active.sets.filter(function(s){return s.exerciseIndex===index;});
+    var recorded=oldSets.filter(function(s){return s.done || Object.keys(s).some(function(k){return !['exerciseIndex','setIndex','done','intervalType','round','durationSec','machine'].includes(k) && s[k]!=='' && s[k]!=null;});});
+    if(recorded.length){active.replacedDetails=active.replacedDetails||[];active.replacedDetails.push({...JSON.parse(JSON.stringify(original)),sets:JSON.parse(JSON.stringify(recorded)),replaced:true});}
+    var next=replacementExercise(original,candidate);day.exercises[index]=next;
+    active.replacements=active.replacements||[];active.replacements.push({from:original.name,to:next.name,at:Date.now(),exerciseIndex:index});
+    active.sets=active.sets.filter(function(s){return s.exerciseIndex!==index;});
+    for(var i=0;i<next.sets;i++)active.sets.push({exerciseIndex:index,setIndex:i,...(next.intervals?{...next.intervals[i],machine:next.machine}:{}),done:false});
+    write(KEY.active,active);replacementIndex=null;show('workout');
+  }
+  function renderLibrary() {
+    var all=exerciseLibrary(),original=active && replacementIndex!=null?getDay(active.dayId).exercises[replacementIndex]:null;
+    var category=$('library-category'),equipment=$('library-equipment');
+    if(category.options.length===1)Array.from(new Set(all.map(ex=>ex.category))).sort().forEach(c=>category.add(new Option(c,c)));
+    if(equipment.options.length===1)Array.from(new Set(all.map(ex=>ex.equipment||'Material segons exercici'))).sort().forEach(c=>equipment.add(new Option(c,c)));
+    $('library-context').textContent=original?'Substituir '+original.name+' · només en aquesta sessió. Es conserven les sèries registrades. El circuit manté els descansos; revisa la dosi del substitut.':'Exercicis dels quatre dies i dels plans anteriors. Consulta tècnica, material i alternatives.';
+    $('library-back').hidden=!original;
+    var query=$('library-search').value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+    var list=all.filter(function(ex){return (!original || (Boolean(original.intervals)===Boolean(ex.intervals) && ex.name!==original.name)) && (!category.value || ex.category===category.value) && (!equipment.value || (ex.equipment||'Material segons exercici')===equipment.value) && (ex.name+' '+ex.category+' '+ex.pattern+' '+(ex.equipment||'')).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').includes(query);});
+    if(original)list.sort(function(a,b){return Number(b.pattern===exercisePattern(original))-Number(a.pattern===exercisePattern(original));});
+    $('library-count').textContent=list.length+' exercicis';
+    $('library-results').innerHTML=list.map(function(ex){
+      var guide=ex.steps?'<details><summary>Com fer-lo</summary><p>'+esc(ex.setup)+'</p><ol>'+ex.steps.map(s=>'<li>'+esc(s)+'</li>').join('')+'</ol><p>'+esc(ex.tempo)+'</p><p><b>Evita:</b> '+esc(ex.errors)+'</p><p><b>Què notar:</b> '+esc(ex.feel)+'</p><p><b>Progressió:</b> '+esc(ex.progression)+'</p></details>':'<p>'+esc(ex.cue||'Consulta la tècnica abans de començar.')+'</p>';
+      var dose=original?replacementExercise(original,ex):ex;
+      return '<article class="exercise library-card"><small>'+esc(ex.category+' · '+ex.pattern)+'</small><h3>'+esc(ex.name)+'</h3><p>'+esc(ex.equipment||'Material segons exercici')+'</p><div class="dose">'+esc(dose.sets+' × '+dose.reps)+'</div>'+(original&&ex.pattern===exercisePattern(original)?'<p class="library-match">Patró similar</p>':'')+guide+(!/→/.test(ex.name)&&!ex.reaction?'<a class="video-link" target="_blank" rel="noreferrer" href="https://www.youtube.com/results?search_query='+encodeURIComponent(ex.name+' exercise technique')+'">CERCA DEMO TÈCNICA ↗</a>':'<p class="cue">Segueix la seqüència descrita; demo exacta pendent.</p>')+(original?'<button class="replace-choice" data-library-name="'+esc(ex.name)+'">SUBSTITUIR PER AQUEST</button>':'')+'</article>';
+    }).join('') || '<p class="empty">Cap exercici amb aquests filtres.</p>';
+    $('library-results').querySelectorAll('.replace-choice').forEach(btn=>btn.onclick=()=>replaceExercise(replacementIndex,all.find(ex=>ex.name===btn.dataset.libraryName)));
+  }
   function exerciseGuide(ex) {
-    if(!ex.group)return '';
+    if(!ex.group || !ex.steps)return '<p class="cue">'+(ex.format==='circuit'?'NO REST BETWEEN EXERCISES · ':'')+'Descans al final de ronda: '+esc(ex.roundRest || ex.rest || 0)+' s.</p>';
     return '<div class="v6-guide"><b>'+esc(ex.code+' · '+ex.group+' · '+ex.format)+'</b><p>'+ (ex.format==='circuit'?'NO REST BETWEEN EXERCISES · ':'')+'Descans al final de ronda: '+(ex.block==='COS SENCER'&&active.dayId==='day2'?'60–90':ex.roundRest)+' s. '+(ex.group==='Leg circuit'&&ex.sets===4?'3 rondes amb accessoris + 4a sèrie del principal.':'')+'</p><details><summary>Setup, execució i progressió</summary><p><b>Equip:</b> '+esc(ex.equipment)+'</p><p>'+esc(ex.setup)+'</p><ol>'+ex.steps.map(s=>'<li>'+esc(s)+'</li>').join('')+'</ol><p><b>Tempo/intenció:</b> '+esc(ex.tempo)+'</p><p><b>Errors:</b> '+esc(ex.errors)+'</p><p><b>Què notar:</b> '+esc(ex.feel)+'</p><p><b>Progressió:</b> '+esc(ex.progression)+'</p></details>'+(ex.optional?'<button class="v6-option" data-option="'+esc(ex.name)+'">'+(ex.name.includes('Snatch')?'USAR VARIANT EN LLOC DEL LANDMINE':'AFEGIR FINISHER SI SOBRA TEMPS')+'</button>':'')+'</div>';
   }
   var reactionTimer=null, reactionRunning=false;
@@ -698,7 +773,7 @@
     E.workoutContent.querySelectorAll('.v6-option').forEach(btn=>btn.onclick=()=>{
       if(reactionRunning)return;
       const day=getDay(active.dayId),name=btn.dataset.option,idx=day.exercises.findIndex(e=>e.name===name),opt=day.exercises[idx];
-      if(name.includes('Snatch')) {const target=day.exercises.findIndex(e=>e.name==='Landmine Squat → Rotational Press');if(target<0)return;day.exercises[target]={...opt,optional:false,group:'Full body · 3 rounds'};}
+      if(name.includes('Snatch')) {const target=day.exercises.findIndex(e=>e.name==='Landmine Squat → Rotational Press');if(target<0)return;replaceExercise(target,opt);return;}
       else {opt.optional=false;for(let i=0;i<3;i++)active.sets.push({exerciseIndex:idx,setIndex:i,done:false});}
       write(KEY.active,active);renderWorkout();
     });
@@ -759,7 +834,7 @@
               '<button class="set-done">' + (s.done ? '✓' : 'FET') + '</button></div>';
           }).join("");
           var tempo=tempoFor(x.ex);
-          return '<article class="exercise"><h3>' + esc(x.ex.name) + '</h3>' +
+          return '<article class="exercise"><h3>' + esc(x.ex.name) + '</h3>' + (!x.ex.optional?'<button class="replace-exercise" data-replace="'+x.exIndex+'">SUBSTITUIR EXERCICI</button>':'') +
             '<div class="dose">' + esc(x.ex.intervals ? "30 min · " + x.ex.sets + " intervals" : x.ex.sets + " × " + x.ex.reps + (x.ex.rest ? " · descans " + x.ex.rest + "s" : "")) + '</div>' +
             '<p class="cue">' + esc(x.ex.cue) + '</p>' + exerciseGuide(x.ex) + (x.ex.reaction?reactionControls(x.exIndex):'') +
             (tempo?'<button class="tempo-btn" data-tempo-down="'+tempo.down+'" data-tempo-up="'+tempo.up+'">TEMPO '+tempo.down+'↓ · '+tempo.up+'↑</button>':'') +
@@ -797,6 +872,7 @@
       });
     });
 
+    E.workoutContent.querySelectorAll('[data-replace]').forEach(btn=>btn.onclick=()=>openLibrary(Number(btn.dataset.replace)));
     bindReaction();
     var done = active.sets.filter(function (s) { return s.done; }).length;
     E.progress.style.width = Math.round(done / active.sets.length * 100) + "%";
@@ -819,6 +895,11 @@
         })};
       })
     };
+    session.details=session.details.concat(active.replacedDetails||[]);
+    session.replacements=active.replacements||[];
+    session.completedSets=session.details.reduce((n,ex)=>n+ex.sets.filter(s=>s.done).length,0);
+    var allRpes=session.details.flatMap(ex=>ex.sets).map(s=>Number(s.rpe)).filter(n=>Number.isFinite(n)&&n>0);
+    session.avgRpe=allRpes.length?allRpes.reduce((a,b)=>a+b,0)/allRpes.length:0;
     session.prs = detectPRs(session, history);
     history.unshift(session); write(KEY.history, history);
     active = null; remove(KEY.active); clearInterval(elapsedTick); clearInterval(restTick);
@@ -1445,6 +1526,7 @@
     if (name === "calendar") renderCalendar();
     if (name === "plans") renderCustomPlans();
     if (name === "progress") renderProgress();
+    if (name === "library") renderLibrary();
     window.scrollTo(0, 0);
   }
 
@@ -1550,6 +1632,9 @@
   });
   window.addEventListener("focus", function () { renderRest(); });
 
+  ['library-search','library-category','library-equipment'].forEach(id=>$(id).addEventListener('input',renderLibrary));
+  $('library-back').onclick=()=>{replacementIndex=null;show('workout');};
+  document.querySelector('[data-screen="library"]').addEventListener('click',()=>openLibrary(null));
   renderPlan();
   renderHomeIntelligence();
   renderWorkout();
@@ -1562,3 +1647,4 @@
     scheduleRest();
   }
 })();
+
