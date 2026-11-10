@@ -4,7 +4,7 @@ function git(cwd,...args){return execFileSync('git',['-C',cwd,...args],{encoding
 function promote(sourceDir,targetDir){
   const files=['app.js','data.js','legacy-data.js','v6.js','styles.css','index.html','icon.svg','manifest.webmanifest'];
   const contents=Object.fromEntries(files.map(f=>[f,fs.readFileSync(path.join(sourceDir,f),'utf8')]));
-  const keys={selected:'oa3.selected',active:'oa3.active',history:'oa3.history',knee:'oa3.knee',customPlans:'oa4.customPlans',readiness:'oa5.readiness',goals:'oa5.goals',tests:'oa5.tests',blockWeek:'oa5.blockWeek',weeklyReviews:'oa5.weeklyReviews',importedOfficial:'oa5.trialsPromotedV60',oct3VideoImportedV1:'oa5.oct3VideoImportedV1'};
+  const keys={selected:'oa3.selected',active:'oa3.active',history:'oa3.history',knee:'oa3.knee',customPlans:'oa4.customPlans',readiness:'oa5.readiness',goals:'oa5.goals',tests:'oa5.tests',blockWeek:'oa5.blockWeek',weeklyReviews:'oa5.weeklyReviews',scheduled:'oa5.scheduled',importedOfficial:'oa5.trialsPromotedV60',oct3VideoImportedV1:'oa5.oct3VideoImportedV1'};
   Object.entries(keys).forEach(([suffix,key])=>{contents['app.js']=contents['app.js'].replaceAll('"oat5.'+suffix+'"','"'+key+'"');});
   contents['app.js']=contents['app.js'].replace('version: "olympus-trials-v6"','version: "olympus-official-v6"');
   contents['index.html']=contents['index.html'].replace('Olympus Athlete · Trials','Olympus Athlete · Oficial').replace('>TRIALS</span>','>OFICIAL</span>').replace('href="official/"','href="../"').replace('APP OFICIAL','TRIALS');

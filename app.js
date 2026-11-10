@@ -12,6 +12,7 @@
     tests: "oat5.tests",
     blockWeek: "oat5.blockWeek",
     weeklyReviews: "oat5.weeklyReviews",
+    scheduled: "oat5.scheduled",
     importedOfficial: "oat5.importedOfficial",
     oct3VideoImported: "oat5.oct3VideoImportedV1"
   };
@@ -295,7 +296,7 @@
     E.readinessCard.hidden = false;
     E.readinessCard.scrollIntoView({behavior:"smooth",block:"start"});
   }
-  function closeReadiness() { E.readinessCard.hidden = true; }
+  function closeReadiness() { E.readinessCard.hidden = true; pendingScheduled=null; }
   function readinessPayload() {
     return { at:Date.now(), dayId:selectedId, energy:Number(E.readyEnergy.value), sleep:Number(E.readySleep.value),
       pain:Number(E.readyPain.value), stiffness:Number(E.readyStiff.value), confidence:Number(E.readyConfidence.value) };
@@ -552,6 +553,7 @@
       goals: read(KEY.goals, []),
       tests: read(KEY.tests, []),
       weeklyReviews: read(KEY.weeklyReviews, []),
+      scheduled: read(KEY.scheduled, []),
       blockWeek: read(KEY.blockWeek, 1)
     };
     var blob = new Blob([JSON.stringify(payload,null,2)], {type:"application/json"});
@@ -569,6 +571,7 @@
 
 
   var selectedId = read(KEY.selected, "day1");
+  var pendingScheduled = null;
   var active = read(KEY.active, null);
   var elapsedTick = null;
   var restTick = null;
@@ -596,6 +599,7 @@
 
     Array.from(E.dayGrid.querySelectorAll("[data-day]")).forEach(function (btn) {
       btn.addEventListener("click", function () {
+        pendingScheduled=null;
         selectedId = btn.getAttribute("data-day");
         write(KEY.selected, selectedId);
         basePlanOpen = false;
@@ -603,7 +607,7 @@
       });
     });
 
-    var d = getDay(selectedId);
+    var d = pendingScheduled ? pendingScheduled.plan : getDay(selectedId);
     E.selectedNum.textContent = "DAY " + d.num;
     E.selectedTitle.textContent = d.title;
     E.selectedSubtitle.textContent = d.subtitle;
@@ -629,19 +633,19 @@
 
   function newSession(readiness) {
     if (active) { show("workout"); return; }
-    var d = getDay(selectedId);
+    var d = pendingScheduled ? pendingScheduled.plan : getDay(selectedId);
     if (readiness) {
       var readinessItems=read(KEY.readiness,[]); readinessItems.unshift(readiness); write(KEY.readiness,readinessItems.slice(0,100));
     }
     active = {
-      planSnapshot: JSON.parse(JSON.stringify(d)), version:6, id: uid(), dayId: d.id, startedAt: Date.now(), readiness: readiness || null, restEnd: 0, restPaused: false, restRemaining: 0,
+      planSnapshot: JSON.parse(JSON.stringify(d)), scheduledId:pendingScheduled && pendingScheduled.id, version:6, id: uid(), dayId: d.id, startedAt: Date.now(), readiness: readiness || null, restEnd: 0, restPaused: false, restRemaining: 0,
       sets: d.exercises.reduce(function (all, ex, exerciseIndex) {
         if(ex.optional) return all;
         for (var i = 0; i < ex.sets; i++) all.push({ exerciseIndex: exerciseIndex, setIndex: i, ...(ex.intervals?{...ex.intervals[i],machine:ex.machine}:{}), weight: "", repsDone: "", rpe: "", heightCm: "", distanceCm: "", distanceM: "", distanceKm: "", timeMin: "", seconds: "", done: false });
         return all;
       }, [])
     };
-    closeReadiness();
+    pendingScheduled=null;closeReadiness();
     write(KEY.active, active);
     renderWorkout(); startElapsed(); show("workout");
   }
@@ -814,9 +818,10 @@
     var day = getDay(active.dayId);
     E.workoutNum.textContent = "DAY " + day.num;
     E.workoutTitle.textContent = day.title;
+    E.sessionPaceLabel.textContent=day.mesocycle?'Segueix els blocs i adapta segons les sensacions.':'Genoll 0–30 · Força 30–65 · Cardio 65–90';
     E.finishCard.hidden = false;
 
-    var blocks = ["GENOLL + CAMA", "MOTOR", "COS SENCER"];
+    var blocks = day.mesocycle ? Array.from(new Set(day.exercises.map(ex=>ex.block))) : ["GENOLL + CAMA", "MOTOR", "COS SENCER"];
     E.workoutContent.innerHTML = blocks.map(function (block) {
       var body = day.exercises
         .map(function (ex, exIndex) { return { ex: ex, exIndex: exIndex }; })
@@ -887,7 +892,7 @@
     var rpes = active.sets.map(function (s) { return Number(s.rpe); }).filter(function (n) { return Number.isFinite(n) && n > 0; });
     var history = read(KEY.history, []);
     var session = {
-      version:active.version||5, planTitle:getDay(active.dayId).title, id: active.id, dayId: active.dayId, startedAt: active.startedAt, finishedAt: Date.now(), readiness: active.readiness || null,
+      version:active.version||5, planTitle:getDay(active.dayId).title, scheduledId:active.scheduledId, id: active.id, dayId: active.dayId, startedAt: active.startedAt, finishedAt: Date.now(), readiness: active.readiness || null,
       durationSec: Math.max(0, Math.floor((Date.now() - active.startedAt) / 1000)),
       completedSets: active.sets.filter(function (s) { return s.done; }).length,
       avgRpe: rpes.length ? rpes.reduce(function (a, b) { return a + b; }, 0) / rpes.length : 0,
@@ -1000,7 +1005,8 @@
       var key = dateKey(d.getTime());
       var count = history.filter(function (s) { return dateKey(s.finishedAt) === key; }).length;
       var cls = "calendar-cell" + (muted ? " muted" : "") + (key === dateKey(Date.now()) ? " today" : "") + (key === selectedCalendarDate ? " selected" : "");
-      cells.push('<button class="' + cls + '" data-date="' + key + '"><span>' + d.getDate() + '</span>' + (count ? '<span class="count">' + count + '</span>' : '') + '</button>');
+      var planned=read(KEY.scheduled,[]).some(s=>s.date===key&&!history.some(h=>h.scheduledId===s.id));
+      cells.push('<button class="' + cls + '" data-date="' + key + '"><span>' + d.getDate() + '</span>' + (count ? '<span class="count">' + count + '</span>' : '')+(planned?'<span aria-label="Planificat">•</span>':'') + '</button>');
     }
 
     E.calGrid.innerHTML = cells.join("");
@@ -1059,11 +1065,15 @@
         ? Math.round((s.durationSec || 0) / 60) + ' min · SESSIÓ RECUPERADA'
         : Math.round((s.durationSec || 0) / 60) + ' min · RPE ' + Number(s.avgRpe || 0).toFixed(1) + ' · ' + Number(s.completedSets || 0) + ' sets';
       var open = expandedSessionId === s.id;
-      return '<article class="calendar-session-card"><div class="calendar-session"><div><h3>' + esc(day.title) + '</h3><p>' + meta + '</p></div>' +
+      return '<article class="calendar-session-card"><div class="calendar-session"><div><h3>' + esc(s.planTitle||day.title) + '</h3><p>' + meta + '</p></div>' +
         '<div class="calendar-session-actions"><button data-view-session="' + esc(s.id) + '">' + (open ? 'TANCAR' : 'DADES') + '</button><button data-edit-session="' + esc(s.id) + '">EDITA</button></div></div>' +
         (open ? '<div class="saved-session-detail">' + sessionDetailHTML(s) + '</div>' : '') + '</article>';
     }).join("") : '<div class="empty">No hi ha cap entreno guardat aquest dia.</div>';
 
+    var scheduled=read(KEY.scheduled,[]).filter(s=>s.date===selectedCalendarDate);
+    var plannedHTML=scheduled.map(s=>{var done=history.some(h=>h.scheduledId===s.id);return '<article class="calendar-session-card"><h3>'+esc(s.plan.title)+'</h3><p>SETMANA '+s.week+' · '+esc(s.plan.subtitle)+' · '+(done?'COMPLETAT':'PLANIFICAT')+'</p><details><summary>Veure entrenament</summary>'+s.plan.exercises.map(e=>'<p>'+esc(e.name)+' · '+esc(e.sets+' × '+e.reps)+'</p>').join('')+'</details>'+(done?'':'<button class="primary" data-start-scheduled="'+esc(s.id)+'">INICIAR ENTRENO</button>')+'</article>';}).join('');
+    if(plannedHTML)E.calSessions.innerHTML=plannedHTML+(sessions.length?E.calSessions.innerHTML:'');
+    E.calSessions.querySelectorAll('[data-start-scheduled]').forEach(btn=>btn.onclick=()=>{var item=scheduled.find(s=>s.id===btn.dataset.startScheduled);if(!item)return;if(active){show('workout');return;}pendingScheduled=item;selectedId=item.plan.id;renderPlan();show('plan');openReadiness();});
     Array.from(E.calSessions.querySelectorAll("[data-view-session]")).forEach(function (btn) {
       btn.addEventListener("click", function () {
         var id=btn.getAttribute("data-view-session");
@@ -1480,7 +1490,7 @@
     renderWeeklyReview();
     E.history.innerHTML = history.length ? history.slice(0, 12).map(function (x) {
       var date = new Date(x.finishedAt).toLocaleDateString("ca-ES", { day: "2-digit", month: "short" });
-      return '<div class="history-row"><span>' + date + '</span><b>' + esc(getDay(x.dayId).title) + (x.recovered ? ' · RECUP.' : '') + '</b><span>' + Math.round((x.durationSec || 0) / 60) + ' min</span></div>';
+      return '<div class="history-row"><span>' + date + '</span><b>' + esc(x.planTitle||getDay(x.dayId).title) + (x.recovered ? ' · RECUP.' : '') + '</b><span>' + Math.round((x.durationSec || 0) / 60) + ' min</span></div>';
     }).join("") : '<div class="empty">Encara no hi ha sessions guardades.</div>';
   }
 
@@ -1569,6 +1579,14 @@
   E.deleteSession.addEventListener("click", deleteSession);
 
   E.newPlan.addEventListener("click", function () { openPlanEditor(null); });
+  $('mesocycle-preview').innerHTML=MESO_DEC.days.map(d=>'<article><h4>'+esc(d.num+' · '+d.title)+'</h4><p>'+esc(d.subtitle)+'</p>'+d.exercises.map(e=>'<p>'+esc(e.group+' · '+e.name+' · '+e.sets+' × '+e.reps)+'</p>').join('')+'</article>').join('');
+  $('mesocycle-add').addEventListener('click',function(){
+    var value=$('mesocycle-start').value,base=new Date(parseDateInput(value));
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(value)||!Number.isFinite(base.getTime())||dateKey(base.getTime())!==value||base.getDay()!==1){$('mesocycle-status').textContent='Selecciona un dilluns vàlid.';return;}
+    var records=read(KEY.scheduled,[]),added=0;
+    for(var week=0;week<4;week++) MESO_DEC.days.forEach(function(day,offset){var date=new Date(base.getFullYear(),base.getMonth(),base.getDate()+week*7+offset,12),key=dateKey(date.getTime()),id='base-atletica-'+value+'-'+week+'-'+offset;if(records.some(r=>r.id===id))return;var plan=JSON.parse(JSON.stringify(day));plan.mesocycle=true;if(week===3)plan.exercises.forEach(e=>{if(e.sets>2)e.sets=2;});records.push({id,date:key,week:week+1,plan});added++;});
+    write(KEY.scheduled,records);$('mesocycle-status').textContent=added?'Afegits '+added+' entrenaments al calendari.':'Aquest mesocicle ja està afegit.';selectedCalendarDate=value;calendarYear=base.getFullYear();calendarMonth=base.getMonth();renderCalendar();
+  });
   E.planEditorClose.addEventListener("click", closePlanEditor);
   E.savePlan.addEventListener("click", savePlan);
   E.deletePlan.addEventListener("click", deletePlan);
@@ -1598,7 +1616,7 @@
     try {
       const backup=JSON.parse(await file.text());
       if(!backup || !Array.isArray(backup.history) || !Array.isArray(backup.knee))throw Error('No és una còpia de seguretat d’Olympus.');
-      const names=['history','knee','readiness','plans','goals','tests','weeklyReviews'];
+      const names=['history','knee','readiness','plans','goals','tests','weeklyReviews','scheduled'];
       const staged={};
       names.forEach(name=>{
         if(backup[name]!=null&&!Array.isArray(backup[name]))throw Error('Camp invàlid: '+name);
